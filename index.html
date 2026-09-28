@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>RPG Tático — Fase 01</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#15121d;color:#f5f2ff;font-family:system-ui,sans-serif}
+main{max-width:900px;margin:auto;padding:16px}
+header{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:14px}
+h1{margin:0;font-size:24px}
+p{margin:5px 0;color:#c9c2d8}
+.turn{background:#292238;padding:9px 13px;border-radius:10px}
+.layout{display:grid;grid-template-columns:minmax(300px,1fr) 260px;gap:14px}
+.map{display:grid;grid-template-columns:repeat(8,1fr);aspect-ratio:1;border:3px solid #443956;border-radius:10px;overflow:hidden}
+.cell{border:1px solid #40364d;background:#29243a;color:#fff;font-size:clamp(18px,6vw,38px);padding:0;cursor:pointer;touch-action:manipulation}
+.cell:active{filter:brightness(1.35)}
+.player{background:#29456b}
+.enemy{background:#5a3047}
+.goal{background:#65531d}
+aside{background:#211c2d;border:1px solid #443956;border-radius:14px;padding:16px}
+button.action{width:100%;min-height:46px;margin-top:8px;border:0;border-radius:9px;background:#7255a8;color:#fff;font-weight:700;font-size:15px}
+.message{margin-top:12px;padding:11px;background:#17141f;border-radius:9px;line-height:1.4}
+@media(max-width:650px){
+.layout{grid-template-columns:1fr}
+main{padding:10px}
+.side{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.side h2,.side p,.side h3,.message{grid-column:1/-1}
+.action{margin-top:0!important}
+}
+</style>
+</head>
+<body>
+<main>
+<header>
+<div><h1>RPG Tático</h1><p>Fase 01 — Campo de Treinamento</p></div>
+<div class="turn">Turno <strong id="turn">1</strong></div>
+</header>
+<div class="layout">
+<div id="map" class="map"></div>
+<aside class="side">
+<h2>Aventureiro</h2>
+<p>Movimentos: <strong id="moves">3</strong></p>
+<p>Energia: <strong id="energy">3</strong></p>
+<button class="action" id="wait">Encerrar turno</button>
+<button class="action" id="reset">Reiniciar fase</button>
+<div id="message" class="message">Mova o personagem uma casa por vez e alcance ★.</div>
+<h3>Objetivo</h3>
+<p>Chegue à casa ★. O ◆ é o alvo de treinamento.</p>
+</aside>
+</div>
+</main>
+<script>
+const S=8,map=document.getElementById("map"),turn=document.getElementById("turn"),moves=document.getElementById("moves"),energy=document.getElementById("energy"),msg=document.getElementById("message");
+let g;
+function reset(){g={t:1,m:3,e:3,p:{x:1,y:6},enemy:{x:5,y:2},goal:{x:6,y:1},win:false};draw();msg.textContent="Mova o personagem uma casa por vez e alcance ★."}
+function draw(){map.innerHTML="";for(let y=0;y<S;y++)for(let x=0;x<S;x++){let b=document.createElement("button");b.className="cell";b.setAttribute("aria-label","Casa "+(x+1)+","+(y+1));if(x===g.goal.x&&y===g.goal.y){b.classList.add("goal");b.textContent="★"}if(x===g.enemy.x&&y===g.enemy.y){b.classList.add("enemy");b.textContent="◆"}if(x===g.p.x&&y===g.p.y){b.classList.add("player");b.textContent="●"}b.onclick=()=>move(x,y);map.appendChild(b)}turn.textContent=g.t;moves.textContent=g.m;energy.textContent=g.e}
+function end(){g.t++;g.m=3;g.e=3;if(g.enemy.x>=0){let dx=g.p.x-g.enemy.x,dy=g.p.y-g.enemy.y;if(Math.abs(dx)+Math.abs(dy)>1){if(Math.abs(dx)>=Math.abs(dy))g.enemy.x+=Math.sign(dx);else g.enemy.y+=Math.sign(dy)}}msg.textContent="Turno "+g.t+": escolha seu próximo movimento.";draw()}
+function move(x,y){if(g.win)return;let d=Math.abs(x-g.p.x)+Math.abs(y-g.p.y);if(d!==1){msg.textContent="Você só pode mover uma casa por vez.";return}if(x===g.enemy.x&&y===g.enemy.y){if(g.e<=0){msg.textContent="Sem energia. Encerre o turno.";return}g.e--;g.enemy={x:-1,y:-1};msg.textContent="Alvo de treinamento superado!"}g.p={x,y};g.m--;if(x===g.goal.x&&y===g.goal.y){g.win=true;msg.textContent="✨ FASE CONCLUÍDA! O protótipo está funcionando."}else if(g.m===0)end();draw()}
+document.getElementById("wait").onclick=()=>{if(!g.win)end()};
+document.getElementById("reset").onclick=reset;
+reset();
+</script>
+</body>
+</html>
