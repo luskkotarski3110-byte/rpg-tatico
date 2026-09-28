@@ -86,6 +86,9 @@ button.action:active{transform:translateY(2px);box-shadow:0 1px 0 #d995b5}
 .objective{font-size:13px;line-height:1.4;margin-top:10px;color:#7c7080}
 .legend{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px;font-size:11px}
 .badge{background:#f5f0fa;border-radius:10px;padding:5px 7px}
+.battle{margin-top:10px;padding:10px;background:#fff0f6;border:2px solid #f0bfd4;border-radius:16px}
+.hidden{display:none!important}
+.battle button{margin-top:7px}
 @media(max-width:700px){
   main{padding:8px}
   .layout{grid-template-columns:1fr}
@@ -119,14 +122,22 @@ button.action:active{transform:translateY(2px);box-shadow:0 1px 0 #d995b5}
   <aside>
     <div class="side-grid">
       <div class="card-title">🐹 Aventureiro</div>
+      <div class="stat"><span>❤️ Vida</span><strong id="hp">10/10</strong></div>
       <div class="stat"><span>👣 Movimentos</span><strong id="moves">3</strong></div>
       <div class="stat"><span>⚡ Energia</span><strong id="energy">3</strong></div>
+      <div id="battle" class="battle hidden">
+        <div class="card-title">⚔️ Batalha</div>
+        <div class="stat"><span>🎯 Alvo</span><strong id="enemyHp">6/6</strong></div>
+        <button class="action" id="attack">⚔️ Atacar</button>
+        <button class="action secondary" id="skill">✨ Golpe especial (2⚡)</button>
+        <button class="action secondary" id="defend">🛡️ Defender</button>
+      </div>
       <button class="action" id="wait">⏭️ Encerrar turno</button>
       <button class="action secondary" id="reset">🔄 Reiniciar fase</button>
-      <div id="message" class="message">Toque em uma casa vizinha para andar. Alcance a ⭐ para concluir.</div>
-      <div class="objective"><strong>Objetivo:</strong> chegar à estrela. O 🎯 é o alvo de treinamento.</div>
+      <div id="message" class="message">Mova uma casa por vez. Fique ao lado do 🎯 e toque nele para iniciar a batalha.</div>
+      <div class="objective"><strong>Objetivo:</strong> derrote o 🎯 e alcance a ⭐. Na batalha, escolha uma ação; o alvo responde depois.</div>
       <div class="legend">
-        <span class="badge">🔵 Você</span><span class="badge">🎯 Alvo</span><span class="badge">⭐ Meta</span>
+        <span class="badge">🔵 Você</span><span class="badge">🎯 Inimigo</span><span class="badge">⭐ Meta</span>
       </div>
     </div>
   </aside>
@@ -136,7 +147,8 @@ button.action:active{transform:translateY(2px);box-shadow:0 1px 0 #d995b5}
 <script>
 const S=8;
 const map=document.getElementById("map"),turn=document.getElementById("turn");
-const moves=document.getElementById("moves"),energy=document.getElementById("energy"),msg=document.getElementById("message");
+const moves=document.getElementById("moves"),energy=document.getElementById("energy"),hp=document.getElementById("hp"),msg=document.getElementById("message");
+const battle=document.getElementById("battle"),enemyHp=document.getElementById("enemyHp");
 let g;
 
 const decor = {
@@ -150,8 +162,9 @@ const decor = {
 const blocked = new Set(["2,2","3,2","4,2","5,4","6,4","2,6","3,6","4,6"]);
 
 function reset(){
-  g={t:1,m:3,e:3,p:{x:1,y:6},enemy:{x:5,y:2},goal:{x:6,y:1},win:false};
-  msg.textContent="Toque em uma casa vizinha para andar. Alcance a ⭐ para concluir.";
+  g={t:1,m:3,e:3,hp:10,maxHp:10,p:{x:1,y:6},enemy:{x:5,y:2},enemyHp:6,maxEnemyHp:6,goal:{x:6,y:1},win:false,battle:false,defending:false};
+  msg.textContent="Mova uma casa por vez. Fique ao lado do 🎯 e toque nele para iniciar a batalha.";
+  battle.classList.add("hidden");
   draw();
 }
 function draw(){
@@ -168,13 +181,16 @@ function draw(){
     if(x===g.goal.x&&y===g.goal.y){b.classList.add("goal");b.innerHTML="⭐";}
     if(x===g.enemy.x&&y===g.enemy.y){b.classList.add("enemy");b.innerHTML="🎯";}
     if(x===g.p.x&&y===g.p.y){b.classList.add("player");b.innerHTML="🔵";}
-    b.onclick=()=>move(x,y);
+    b.onclick=()=>{if(x===g.enemy.x&&y===g.enemy.y){startBattle();}else move(x,y)};
     map.appendChild(b);
   }
   turn.textContent=g.t;moves.textContent=g.m;energy.textContent=g.e;
+  hp.textContent=g.hp+"/"+g.maxHp;enemyHp.textContent=g.enemyHp+"/"+g.maxEnemyHp;
+  battle.classList.toggle("hidden",!g.battle);
 }
 function end(){
-  g.t++;g.m=3;g.e=3;
+  if(g.battle){msg.textContent="⚔️ Termine a batalha antes de encerrar o turno.";return;}
+  g.t++;g.m=3;g.e=3;g.defending=false;
   if(g.enemy.x>=0){
     const dx=g.p.x-g.enemy.x,dy=g.p.y-g.enemy.y;
     if(Math.abs(dx)+Math.abs(dy)>1){
@@ -186,22 +202,76 @@ function end(){
   draw();
 }
 function move(x,y){
-  if(g.win)return;
+  if(g.win||g.battle)return;
   if(blocked.has(x+","+y)){msg.textContent="🌳 Esse espaço está ocupado. Escolha outro caminho.";return}
   const d=Math.abs(x-g.p.x)+Math.abs(y-g.p.y);
-  if(d!==1){msg.textContent="👣 Você só pode andar uma casa por vez.";return}
   if(x===g.enemy.x&&y===g.enemy.y){
-    if(g.e<=0){msg.textContent="⚡ Sem energia. Encerre o turno.";return}
-    g.e--;g.enemy={x:-1,y:-1};msg.textContent="🎯 Alvo de treinamento superado!";
+    msg.textContent="⚔️ Você está sobre o alvo. Afaste-se uma casa e toque nele de novo.";
+    return;
   }
+  if(d!==1){msg.textContent="👣 Você só pode andar uma casa por vez.";return}
   g.p={x,y};g.m--;
+  if(g.enemy.x>=0 && Math.abs(g.p.x-g.enemy.x)+Math.abs(g.p.y-g.enemy.y)===1){
+    msg.textContent="🎯 Inimigo ao lado! Toque no 🎯 para iniciar a batalha.";
+  }else{
+    msg.textContent="👣 Movimento realizado.";
+  }
   if(x===g.goal.x&&y===g.goal.y){
-    g.win=true;msg.textContent="🌸 FASE 01 CONCLUÍDA! Você chegou ao portal!";
+    if(g.enemy.x>=0){msg.textContent="⭐ A meta está aqui, mas primeiro derrote o 🎯."; }
+    else {g.win=true;msg.textContent="🌸 FASE 01 CONCLUÍDA! Você chegou ao portal!";}
   }else if(g.m===0) end();
   draw();
 }
+function startBattle(){
+  if(g.win||g.enemy.x<0)return;
+  const d=Math.abs(g.p.x-g.enemy.x)+Math.abs(g.p.y-g.enemy.y);
+  if(d!==1){msg.textContent="🎯 Chegue a uma casa ao lado do inimigo para iniciar a batalha.";return}
+  g.battle=true;g.defending=false;msg.textContent="⚔️ Batalha iniciada! Escolha uma ação.";
+  draw();
+}
+function enemyTurn(){
+  if(g.enemyHp<=0)return;
+  let dmg=1;
+  if(g.defending){dmg=0;msg.textContent="🛡️ Você bloqueou o ataque do 🎯!";}
+  else {g.hp-=dmg;msg.textContent="🎯 O alvo respondeu e causou 1 de dano.";}
+  if(g.hp<=0){
+    g.hp=0;g.battle=false;msg.textContent="💫 Você foi derrotado. Reinicie a fase para tentar novamente.";
+  }
+  g.defending=false;draw();
+}
+function playerAttack(){
+  if(!g.battle)return;
+  g.enemyHp=Math.max(0,g.enemyHp-2);g.m=Math.max(0,g.m-1);
+  if(g.enemyHp===0){
+    g.enemy={x:-1,y:-1};g.battle=false;msg.textContent="✨ Alvo derrotado! Agora alcance a ⭐.";
+  }else{
+    msg.textContent="⚔️ Você causou 2 de dano. O 🎯 vai responder!";
+    enemyTurn();
+  }
+  draw();
+}
+function playerSkill(){
+  if(!g.battle)return;
+  if(g.e<2){msg.textContent="⚡ Você precisa de 2 de energia.";return}
+  g.e-=2;g.enemyHp=Math.max(0,g.enemyHp-4);g.m=Math.max(0,g.m-1);
+  if(g.enemyHp===0){
+    g.enemy={x:-1,y:-1};g.battle=false;msg.textContent="🌟 Golpe especial! Alvo derrotado. Alcance a ⭐.";
+  }else{
+    msg.textContent="✨ Golpe especial causou 4 de dano. O 🎯 vai responder!";
+    enemyTurn();
+  }
+  draw();
+}
+function playerDefend(){
+  if(!g.battle)return;
+  g.defending=true;g.m=Math.max(0,g.m-1);msg.textContent="🛡️ Você está defendendo neste turno.";
+  enemyTurn();draw();
+}
 document.getElementById("wait").onclick=()=>{if(!g.win)end()};
 document.getElementById("reset").onclick=reset;
+document.getElementById("attack").onclick=playerAttack;
+document.getElementById("skill").onclick=playerSkill;
+document.getElementById("defend").onclick=playerDefend;
 reset();
 </script>
 </body>
