@@ -2,62 +2,204 @@
 <html lang="pt-BR">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#ffd9e8">
 <title>RPG Tático — Fase 01</title>
 <style>
-*{box-sizing:border-box}
-body{margin:0;background:#15121d;color:#f5f2ff;font-family:system-ui,sans-serif}
-main{max-width:900px;margin:auto;padding:16px}
-header{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-bottom:14px}
-h1{margin:0;font-size:24px}
-p{margin:5px 0;color:#c9c2d8}
-.turn{background:#292238;padding:9px 13px;border-radius:10px}
-.layout{display:grid;grid-template-columns:minmax(300px,1fr) 260px;gap:14px}
-.map{display:grid;grid-template-columns:repeat(8,1fr);aspect-ratio:1;border:3px solid #443956;border-radius:10px;overflow:hidden}
-.cell{border:1px solid #40364d;background:#29243a;color:#fff;font-size:clamp(18px,6vw,38px);padding:0;cursor:pointer;touch-action:manipulation}
-.cell:active{filter:brightness(1.35)}
-.player{background:#29456b}
-.enemy{background:#5a3047}
-.goal{background:#65531d}
-aside{background:#211c2d;border:1px solid #443956;border-radius:14px;padding:16px}
-button.action{width:100%;min-height:46px;margin-top:8px;border:0;border-radius:9px;background:#7255a8;color:#fff;font-weight:700;font-size:15px}
-.message{margin-top:12px;padding:11px;background:#17141f;border-radius:9px;line-height:1.4}
-@media(max-width:650px){
-.layout{grid-template-columns:1fr}
-main{padding:10px}
-.side{display:grid;grid-template-columns:1fr 1fr;gap:7px}
-.side h2,.side p,.side h3,.message{grid-column:1/-1}
-.action{margin-top:0!important}
+:root{
+  --pink:#ffd9e8;--pink2:#fff0f6;--blue:#cfeaff;--blue2:#e9f7ff;
+  --green:#d8f0d0;--cream:#fff8e9;--purple:#ded5f7;--ink:#5b5269;
+}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;min-height:100%;font-family:system-ui,-apple-system,sans-serif;color:var(--ink)}
+body{
+  background:linear-gradient(180deg,#fff4f8 0%,#e9f7ff 100%);
+  overscroll-behavior:none;
+}
+main{width:min(100%,980px);margin:auto;padding:12px}
+header{
+  display:flex;align-items:center;justify-content:space-between;gap:10px;
+  margin-bottom:10px
+}
+.title h1{font-size:clamp(20px,6vw,30px);margin:0;color:#735b78}
+.title p{margin:2px 0 0;font-size:13px;color:#8b7b91}
+.turn{
+  flex:none;background:#fff;border:2px solid #f1c5da;border-radius:18px;
+  padding:8px 12px;box-shadow:0 4px 12px #d8b8c844;font-weight:800
+}
+.layout{display:grid;grid-template-columns:minmax(0,1fr) 255px;gap:12px}
+.map-wrap{
+  position:relative;background:#dff3d8;border:4px solid #fff;border-radius:22px;
+  padding:7px;box-shadow:0 8px 24px #9b8ca533
+}
+.map{
+  display:grid;grid-template-columns:repeat(8,1fr);aspect-ratio:1;
+  overflow:hidden;border-radius:16px;background:#fff4e9;
+  touch-action:manipulation;
+}
+.cell{
+  position:relative;border:1px solid #ffffff99;background:#fff5e6;color:#8a7181;
+  padding:0;min-width:0;cursor:pointer;font-size:clamp(17px,5vw,34px);
+  display:flex;align-items:center;justify-content:center;transition:transform .08s,filter .08s;
+}
+.cell:active{transform:scale(.94);filter:brightness(.97)}
+.path{background:#fffaf1}
+.grass{background:#e4f3dc}
+.water{background:#cfeeff}
+.flower{background:#f4edff}
+.blocked{background:#e7e0f4;cursor:not-allowed}
+.decor{pointer-events:none;font-size:clamp(14px,4vw,27px);opacity:.9}
+.player{
+  background:#cde8ff!important;box-shadow:inset 0 0 0 3px #70bdf0;
+  z-index:2
+}
+.player::after{content:"♥";font-size:.42em;position:absolute;top:2px;right:3px;color:#ef8eae}
+.enemy{
+  background:#ffe1ec!important;box-shadow:inset 0 0 0 3px #ee9db9;
+  z-index:2
+}
+.goal{
+  background:#fff0b9!important;box-shadow:inset 0 0 0 3px #e8bd67;
+  z-index:1
+}
+.cell.player,.cell.enemy,.cell.goal{font-weight:900}
+aside{
+  background:#fff;border:2px solid #f2d4e2;border-radius:20px;padding:14px;
+  box-shadow:0 8px 22px #9b8ca522
+}
+.card-title{font-weight:900;font-size:18px;color:#735b78;margin-bottom:8px}
+.stat{
+  display:flex;justify-content:space-between;align-items:center;
+  background:var(--pink2);border-radius:12px;padding:9px 10px;margin:6px 0
+}
+button.action{
+  width:100%;min-height:48px;margin-top:8px;border:0;border-radius:15px;
+  background:#f3b6d1;color:#654d60;font-weight:900;font-size:15px;
+  box-shadow:0 3px 0 #d995b5;touch-action:manipulation
+}
+button.action.secondary{background:#c9e6f7;box-shadow:0 3px 0 #9cc8df}
+button.action:active{transform:translateY(2px);box-shadow:0 1px 0 #d995b5}
+.message{
+  margin-top:10px;background:#fff7df;border:1px solid #f0ddb0;
+  border-radius:13px;padding:10px;line-height:1.35;font-size:14px
+}
+.objective{font-size:13px;line-height:1.4;margin-top:10px;color:#7c7080}
+.legend{display:flex;gap:7px;flex-wrap:wrap;margin-top:8px;font-size:11px}
+.badge{background:#f5f0fa;border-radius:10px;padding:5px 7px}
+@media(max-width:700px){
+  main{padding:8px}
+  .layout{grid-template-columns:1fr}
+  aside{padding:10px}
+  .side-grid{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+  .card-title,.objective,.message,.legend{grid-column:1/-1}
+  button.action{margin-top:0;min-height:50px}
+}
+@media(max-width:390px){
+  .turn{padding:7px 9px;font-size:13px}
+  .title p{font-size:11px}
+  .map-wrap{padding:5px;border-radius:18px}
 }
 </style>
 </head>
 <body>
 <main>
 <header>
-<div><h1>RPG Tático</h1><p>Fase 01 — Campo de Treinamento</p></div>
-<div class="turn">Turno <strong id="turn">1</strong></div>
+  <div class="title">
+    <h1>🌸 RPG Tático</h1>
+    <p>Fase 01 — Jardim de Treinamento</p>
+  </div>
+  <div class="turn">Turno <strong id="turn">1</strong></div>
 </header>
+
 <div class="layout">
-<div id="map" class="map"></div>
-<aside class="side">
-<h2>Aventureiro</h2>
-<p>Movimentos: <strong id="moves">3</strong></p>
-<p>Energia: <strong id="energy">3</strong></p>
-<button class="action" id="wait">Encerrar turno</button>
-<button class="action" id="reset">Reiniciar fase</button>
-<div id="message" class="message">Mova o personagem uma casa por vez e alcance ★.</div>
-<h3>Objetivo</h3>
-<p>Chegue à casa ★. O ◆ é o alvo de treinamento.</p>
-</aside>
+  <section class="map-wrap" aria-label="Mapa tático da Fase 01">
+    <div id="map" class="map"></div>
+  </section>
+
+  <aside>
+    <div class="side-grid">
+      <div class="card-title">🐹 Aventureiro</div>
+      <div class="stat"><span>👣 Movimentos</span><strong id="moves">3</strong></div>
+      <div class="stat"><span>⚡ Energia</span><strong id="energy">3</strong></div>
+      <button class="action" id="wait">⏭️ Encerrar turno</button>
+      <button class="action secondary" id="reset">🔄 Reiniciar fase</button>
+      <div id="message" class="message">Toque em uma casa vizinha para andar. Alcance a ⭐ para concluir.</div>
+      <div class="objective"><strong>Objetivo:</strong> chegar à estrela. O 🎯 é o alvo de treinamento.</div>
+      <div class="legend">
+        <span class="badge">🔵 Você</span><span class="badge">🎯 Alvo</span><span class="badge">⭐ Meta</span>
+      </div>
+    </div>
+  </aside>
 </div>
 </main>
+
 <script>
-const S=8,map=document.getElementById("map"),turn=document.getElementById("turn"),moves=document.getElementById("moves"),energy=document.getElementById("energy"),msg=document.getElementById("message");
+const S=8;
+const map=document.getElementById("map"),turn=document.getElementById("turn");
+const moves=document.getElementById("moves"),energy=document.getElementById("energy"),msg=document.getElementById("message");
 let g;
-function reset(){g={t:1,m:3,e:3,p:{x:1,y:6},enemy:{x:5,y:2},goal:{x:6,y:1},win:false};draw();msg.textContent="Mova o personagem uma casa por vez e alcance ★."}
-function draw(){map.innerHTML="";for(let y=0;y<S;y++)for(let x=0;x<S;x++){let b=document.createElement("button");b.className="cell";b.setAttribute("aria-label","Casa "+(x+1)+","+(y+1));if(x===g.goal.x&&y===g.goal.y){b.classList.add("goal");b.textContent="★"}if(x===g.enemy.x&&y===g.enemy.y){b.classList.add("enemy");b.textContent="◆"}if(x===g.p.x&&y===g.p.y){b.classList.add("player");b.textContent="●"}b.onclick=()=>move(x,y);map.appendChild(b)}turn.textContent=g.t;moves.textContent=g.m;energy.textContent=g.e}
-function end(){g.t++;g.m=3;g.e=3;if(g.enemy.x>=0){let dx=g.p.x-g.enemy.x,dy=g.p.y-g.enemy.y;if(Math.abs(dx)+Math.abs(dy)>1){if(Math.abs(dx)>=Math.abs(dy))g.enemy.x+=Math.sign(dx);else g.enemy.y+=Math.sign(dy)}}msg.textContent="Turno "+g.t+": escolha seu próximo movimento.";draw()}
-function move(x,y){if(g.win)return;let d=Math.abs(x-g.p.x)+Math.abs(y-g.p.y);if(d!==1){msg.textContent="Você só pode mover uma casa por vez.";return}if(x===g.enemy.x&&y===g.enemy.y){if(g.e<=0){msg.textContent="Sem energia. Encerre o turno.";return}g.e--;g.enemy={x:-1,y:-1};msg.textContent="Alvo de treinamento superado!"}g.p={x,y};g.m--;if(x===g.goal.x&&y===g.goal.y){g.win=true;msg.textContent="✨ FASE CONCLUÍDA! O protótipo está funcionando."}else if(g.m===0)end();draw()}
+
+const decor = {
+  "0,0":["🌳","grass"],"3,0":["🌸","grass"],"6,0":["🌳","grass"],"7,0":["🌷","grass"],
+  "0,1":["🌷","grass"],"2,1":["🪴","grass"],"5,1":["🌸","grass"],"7,1":["🌳","grass"],
+  "0,2":["🌳","grass"],"3,2":["🪴","grass"],"7,2":["🌷","grass"],
+  "0,4":["🌸","grass"],"2,4":["🌿","grass"],"7,4":["🌳","grass"],
+  "0,5":["🌳","grass"],"3,5":["🌷","grass"],"6,5":["🪴","grass"],"7,5":["🌸","grass"],
+  "0,7":["🌳","grass"],"2,7":["🌷","grass"],"5,7":["🌸","grass"],"7,7":["🌳","grass"]
+};
+const blocked = new Set(["2,2","3,2","4,2","5,4","6,4","2,6","3,6","4,6"]);
+
+function reset(){
+  g={t:1,m:3,e:3,p:{x:1,y:6},enemy:{x:5,y:2},goal:{x:6,y:1},win:false};
+  msg.textContent="Toque em uma casa vizinha para andar. Alcance a ⭐ para concluir.";
+  draw();
+}
+function draw(){
+  map.innerHTML="";
+  for(let y=0;y<S;y++) for(let x=0;x<S;x++){
+    const b=document.createElement("button");
+    const key=x+","+y;
+    b.className="cell";
+    b.setAttribute("aria-label","Casa "+(x+1)+", "+(y+1));
+    if((x+y)%3===0) b.classList.add("path"); else b.classList.add("grass");
+    if(y===3 && x===0) b.classList.add("water");
+    if(decor[key]){b.innerHTML='<span class="decor">'+decor[key][0]+"</span>";}
+    if(blocked.has(key)) b.classList.add("blocked"),b.innerHTML='<span class="decor">🌳</span>';
+    if(x===g.goal.x&&y===g.goal.y){b.classList.add("goal");b.innerHTML="⭐";}
+    if(x===g.enemy.x&&y===g.enemy.y){b.classList.add("enemy");b.innerHTML="🎯";}
+    if(x===g.p.x&&y===g.p.y){b.classList.add("player");b.innerHTML="🔵";}
+    b.onclick=()=>move(x,y);
+    map.appendChild(b);
+  }
+  turn.textContent=g.t;moves.textContent=g.m;energy.textContent=g.e;
+}
+function end(){
+  g.t++;g.m=3;g.e=3;
+  if(g.enemy.x>=0){
+    const dx=g.p.x-g.enemy.x,dy=g.p.y-g.enemy.y;
+    if(Math.abs(dx)+Math.abs(dy)>1){
+      if(Math.abs(dx)>=Math.abs(dy)) g.enemy.x+=Math.sign(dx);
+      else g.enemy.y+=Math.sign(dy);
+    }
+  }
+  msg.textContent="Turno "+g.t+": escolha seu próximo movimento.";
+  draw();
+}
+function move(x,y){
+  if(g.win)return;
+  if(blocked.has(x+","+y)){msg.textContent="🌳 Esse espaço está ocupado. Escolha outro caminho.";return}
+  const d=Math.abs(x-g.p.x)+Math.abs(y-g.p.y);
+  if(d!==1){msg.textContent="👣 Você só pode andar uma casa por vez.";return}
+  if(x===g.enemy.x&&y===g.enemy.y){
+    if(g.e<=0){msg.textContent="⚡ Sem energia. Encerre o turno.";return}
+    g.e--;g.enemy={x:-1,y:-1};msg.textContent="🎯 Alvo de treinamento superado!";
+  }
+  g.p={x,y};g.m--;
+  if(x===g.goal.x&&y===g.goal.y){
+    g.win=true;msg.textContent="🌸 FASE 01 CONCLUÍDA! Você chegou ao portal!";
+  }else if(g.m===0) end();
+  draw();
+}
 document.getElementById("wait").onclick=()=>{if(!g.win)end()};
 document.getElementById("reset").onclick=reset;
 reset();
